@@ -3,15 +3,38 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
-const { port, clientUrl, nodeEnv } = require("./config/env");
+const { port, allowedOrigins, nodeEnv } = require("./config/env");
 const connectDB = require("./config/db");
 const errorMiddleware = require("./middleware/error.middleware");
 const ApiError = require("./utils/apiError");
 
 const app = express();
 
-app.use(helmet());
-app.use(cors({ origin: clientUrl, credentials: true }));
+app.use(helmet({ crossOriginResourcePolicy: false }));
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    const normalizedOrigin = origin.replace(/\/$/, "");
+    const isAllowed =
+      allowedOrigins.includes(normalizedOrigin) ||
+      allowedOrigins.includes(origin) ||
+      normalizedOrigin.endsWith(".vercel.app");
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (nodeEnv !== "test") app.use(morgan(nodeEnv === "production" ? "combined" : "dev"));

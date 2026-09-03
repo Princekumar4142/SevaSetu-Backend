@@ -1,5 +1,5 @@
 const { Server } = require("socket.io");
-const { clientUrl } = require("./config/env");
+const { allowedOrigins } = require("./config/env");
 
 let io;
 const activeWorkers = new Map(); // workerId (string) -> socketId
@@ -8,7 +8,18 @@ module.exports = {
   init: (httpServer) => {
     io = new Server(httpServer, {
       cors: {
-        origin: clientUrl,
+        origin: (origin, callback) => {
+          if (!origin) return callback(null, true);
+          const normalized = origin.replace(/\/$/, "");
+          if (
+            allowedOrigins.includes(normalized) ||
+            allowedOrigins.includes(origin) ||
+            normalized.endsWith(".vercel.app")
+          ) {
+            return callback(null, true);
+          }
+          return callback(new Error("Origin not allowed by CORS"));
+        },
         methods: ["GET", "POST"],
         credentials: true,
       },
