@@ -4,6 +4,7 @@ const ApiError = require("../utils/apiError");
 const { generateToken } = require("../utils/token");
 const { ROLES } = require("../utils/roles");
 const otpService = require("./otp.service");
+const { sendWelcomeEmail } = require("./email.service");
 
 async function assertNoDuplicate({ phone, email }) {
   const existing = await User.findOne({ $or: [{ phone }, ...(email ? [{ email }] : [])] });
@@ -26,6 +27,14 @@ async function registerCustomer({ name, phone, email, password }) {
   const user = await User.create({
     name, phone, email, passwordHash: password, role: ROLES.CUSTOMER, isVerified: true,
   });
+
+  if (email) {
+    sendWelcomeEmail(email, name).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("[AUTH] Welcome email dispatch failed:", err?.message || err);
+    });
+  }
+
   return issueSession(user);
 }
 
@@ -83,6 +92,14 @@ async function registerWorker({
     verificationStatus: "VERIFIED", // Mark verified so profile immediately appears in services
     status: "AVAILABLE",
   });
+
+  if (email) {
+    sendWelcomeEmail(email, name).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("[AUTH] Worker welcome email dispatch failed:", err?.message || err);
+    });
+  }
+
   const session = issueSession(user);
   return { ...session, worker };
 }
