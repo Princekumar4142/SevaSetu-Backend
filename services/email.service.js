@@ -3,7 +3,7 @@ const { Resend } = require("resend");
 const { nodeEnv } = require("../config/env");
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || "SevaSetu <onboarding@resend.dev>";
+const RESEND_FROM = process.env.RESEND_FROM || "Seva Setu <noreply@trackmapinnovations.in>";
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 const SMTP_HOST = process.env.SMTP_HOST;
@@ -69,7 +69,7 @@ async function sendWelcomeEmail(to, name) {
   if (resend) {
     try {
       const response = await resend.emails.send({
-        from: RESEND_FROM,
+        from: "Seva Setu <noreply@trackmapinnovations.in>",
         to,
         subject,
         html,
