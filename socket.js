@@ -30,10 +30,25 @@ module.exports = {
 
       // ── Worker Registration ──────────────────────────────────────────
       // Workers call this right after login so we can target them for orders
-      socket.on("register_worker", (data) => {
+      socket.on("register_worker", async (data) => {
         if (data && data.workerId) {
           activeWorkers.set(String(data.workerId), socket.id);
-          console.log(`[Socket] Worker ${data.workerId} registered (socket: ${socket.id})`);
+          try {
+            const mongoose = require("mongoose");
+            const Worker = require("./models/Worker.js");
+            if (mongoose.Types.ObjectId.isValid(data.workerId)) {
+              const workerDoc = await Worker.findOne({
+                $or: [{ _id: data.workerId }, { user: data.workerId }],
+              });
+              if (workerDoc) {
+                activeWorkers.set(String(workerDoc._id), socket.id);
+                if (workerDoc.user) activeWorkers.set(String(workerDoc.user), socket.id);
+                console.log(`[Socket] Registered worker socket mapping: worker ${workerDoc._id} / user ${workerDoc.user} -> socket ${socket.id}`);
+              }
+            }
+          } catch (e) {
+            console.error("[Socket] register_worker error:", e.message);
+          }
         }
       });
 

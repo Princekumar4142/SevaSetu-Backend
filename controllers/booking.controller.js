@@ -86,11 +86,16 @@ const getBookingById = asyncHandler(async (req, res) => {
 });
 
 const getPendingAlert = asyncHandler(async (req, res) => {
+  if (req.user?.role !== "WORKER") {
+    return ApiResponse.success(res, { message: "Pending alert fetched", data: { booking: null } });
+  }
+
   const Booking = require("../models/Booking");
-  const twoMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
   const pendingBooking = await Booking.findOne({
     status: "PENDING",
-    createdAt: { $gte: twoMinutesAgo },
+    customer: { $ne: req.user._id },
+    createdAt: { $gte: fiveMinutesAgo },
   })
     .populate("customer", "name phone profilePhoto")
     .sort({ createdAt: -1 });
