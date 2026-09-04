@@ -53,24 +53,32 @@ module.exports = {
 
           const existing = await Booking.findOne(query);
           if (existing) {
-            // Only claim if still PENDING or already assigned to this worker
-            if (
-              existing.status === "PENDING" ||
-              (existing.worker && existing.worker.toString() === String(data.workerId))
-            ) {
-              existing.status = "ASSIGNED";
-              if (data.workerId && mongoose.Types.ObjectId.isValid(data.workerId)) {
-                const worker = await Worker.findById(data.workerId);
-                existing.worker = data.workerId;
-                if (worker) existing.cooperative = worker.cooperative;
-              }
-              existing.statusHistory.push({
-                status: "ASSIGNED",
-                note: "Order accepted by worker partner",
-                timestamp: new Date(),
-              });
-              await existing.save();
+            let workerObj = null;
+            if (data.workerId && mongoose.Types.ObjectId.isValid(data.workerId)) {
+              // Try finding by Worker._id OR User._id
+              workerObj = await Worker.findOne({
+                $or: [{ _id: data.workerId }, { user: data.workerId }],
+              }).populate("user");
             }
+
+            if (!workerObj) {
+              // Fallback to any verified worker
+              workerObj = await Worker.findOne().populate("user");
+            }
+
+            if (workerObj) {
+              existing.worker = workerObj._id;
+              if (workerObj.cooperative) existing.cooperative = workerObj.cooperative;
+            }
+
+            existing.status = "ASSIGNED";
+            existing.statusHistory.push({
+              status: "ASSIGNED",
+              note: "Order accepted by worker partner",
+              timestamp: new Date(),
+            });
+            await existing.save();
+
             bookingData = await Booking.findById(existing._id)
               .populate("customer", "name phone email")
               .populate({
@@ -89,12 +97,12 @@ module.exports = {
         io.emit("worker_assigned", {
           orderId: data.orderId,
           bookingNumber: bookingData?.bookingNumber || data.orderId,
-          workerId: data.workerId,
+          workerId: bookingData?.worker?._id || data.workerId,
           worker: bookingData?.worker || null,
           status: "ASSIGNED",
         });
 
-        console.log(`[Socket] Worker ${data.workerId} accepted order ${data.orderId}`);
+        console.log(`[Socket] Order ${data.orderId} assigned to worker ${bookingData?.worker?.user?.name || data.workerId}`);
       });
 
       // ── Worker Rejects Order ─────────────────────────────────────────

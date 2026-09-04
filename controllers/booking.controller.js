@@ -51,6 +51,21 @@ const getWorkerBookings = asyncHandler(async (req, res) => {
 
 const updateStatus = asyncHandler(async (req, res) => {
   const booking = await bookingService.updateBookingStatus(req.params.id, req.body.status, req.user);
+  
+  try {
+    const io = socketServer.getIo();
+    const payload = {
+      orderId: booking._id,
+      bookingNumber: booking.bookingNumber,
+      status: booking.status,
+      booking,
+    };
+    io.emit("booking_updated", payload);
+    io.emit("status_updated", payload);
+  } catch (err) {
+    console.error("[Socket] Status update broadcast failed:", err.message);
+  }
+
   return ApiResponse.success(res, { message: `Booking status updated to ${req.body.status}`, data: { booking } });
 });
 
