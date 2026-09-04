@@ -77,7 +77,7 @@ async function registerWorker({
     email,
     passwordHash: password,
     role: ROLES.WORKER,
-    isVerified: true,
+    isVerified: false,
     profilePhoto: profilePhoto || null,
   });
 
@@ -98,8 +98,9 @@ async function registerWorker({
     shopImage: shopImage || "",
     shopAddress: shopAddress || address || "",
     location: location || { lat: 18.5793, lng: 73.9787, address: address || "" },
-    verificationStatus: "VERIFIED", // Mark verified so profile immediately appears in services
-    status: "AVAILABLE",
+    verificationStatus: "PENDING",
+    verifiedAt: null,
+    status: "OFFLINE",
   });
 
   if (email) {

@@ -27,9 +27,9 @@ const workerSchema = new mongoose.Schema(
     shopImage: { type: String, default: "" },
     shopAddress: { type: String, trim: true, default: "" },
 
-    verificationStatus: { type: String, enum: ["PENDING", "VERIFIED", "REJECTED"], default: "VERIFIED" },
+    verificationStatus: { type: String, enum: ["PENDING", "VERIFIED", "REJECTED"], default: "PENDING" },
     rejectionReason: { type: String, trim: true, maxlength: 500, default: null },
-    verifiedAt: { type: Date, default: Date.now },
+    verifiedAt: { type: Date, default: null },
     verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 
     status: { type: String, enum: ["AVAILABLE", "BUSY", "OFFLINE"], default: "AVAILABLE" },
