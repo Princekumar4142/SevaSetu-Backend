@@ -11,6 +11,7 @@ router.post("/", protect, authorize(ROLES.CUSTOMER), bookingController.createBoo
 router.get("/my", protect, authorize(ROLES.CUSTOMER), bookingController.getCustomerBookings);
 
 // Worker endpoints
+router.get("/pending-alert", protect, bookingController.getPendingAlert);
 router.get("/worker", protect, authorize(ROLES.WORKER), bookingController.getWorkerBookings);
 
 // Status updates (Worker, Customer, Cooperative, Platform Admin)

@@ -70,6 +70,19 @@ const getBookingById = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, { message: "Booking details fetched", data: { booking } });
 });
 
+const getPendingAlert = asyncHandler(async (req, res) => {
+  const Booking = require("../models/Booking");
+  const twoMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const pendingBooking = await Booking.findOne({
+    status: "PENDING",
+    createdAt: { $gte: twoMinutesAgo },
+  })
+    .populate("customer", "name phone profilePhoto")
+    .sort({ createdAt: -1 });
+
+  return ApiResponse.success(res, { message: "Pending alert fetched", data: { booking: pendingBooking } });
+});
+
 module.exports = {
   createBooking,
   getCustomerBookings,
@@ -78,4 +91,5 @@ module.exports = {
   getCooperativeBookings,
   getAllBookings,
   getBookingById,
+  getPendingAlert,
 };

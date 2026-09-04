@@ -73,13 +73,10 @@ async function createBooking(customerId, bookingData) {
     preferredWorkerId,
   });
 
-  // Auto-assign the top matched available worker (or first verified if none available)
-  const autoAssignedWorker = matchedWorkers.find((w) => w.status === "AVAILABLE") || matchedWorkers[0] || null;
-
   const booking = await Booking.create({
     customer: customerId,
-    worker: autoAssignedWorker ? autoAssignedWorker._id : null,
-    cooperative: autoAssignedWorker ? autoAssignedWorker.cooperative : null,
+    worker: null,
+    cooperative: null,
     items,
     address,
     slot,
@@ -91,22 +88,13 @@ async function createBooking(customerId, bookingData) {
       paymentMethod: pricing?.paymentMethod || "ONLINE",
       paymentStatus: "PAID",
     },
-    status: autoAssignedWorker ? "ASSIGNED" : "PENDING",
+    status: "PENDING",
     statusHistory: [
       {
         status: "PENDING",
-        note: "Booking placed by customer",
+        note: "Booking placed by customer — waiting for worker partner acceptance",
         timestamp: new Date(),
       },
-      ...(autoAssignedWorker
-        ? [
-            {
-              status: "ASSIGNED",
-              note: `Assigned to verified professional ${autoAssignedWorker.user?.name || "Partner"}`,
-              timestamp: new Date(),
-            },
-          ]
-        : []),
     ],
     customerNotes: customerNotes || "",
   });
