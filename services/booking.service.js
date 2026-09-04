@@ -26,13 +26,17 @@ async function getMatchedWorkersForDispatch({ city, category, preferredWorkerId 
   }
 
   const workers = await Worker.find(query)
-    .populate("user", "name phone profilePhoto")
+    .populate("user", "name phone profilePhoto role")
     .sort({ status: 1, rating: -1 }); // AVAILABLE sorts before BUSY alphabetically
+
+  const onlyVerifiedWorkers = workers.filter(
+    (w) => w.user && w.user.role === "WORKER" && w.verificationStatus === "VERIFIED"
+  );
 
   // Sort: AVAILABLE first, then preferred worker at top
   const sorted = [
-    ...workers.filter((w) => w.status === "AVAILABLE"),
-    ...workers.filter((w) => w.status !== "AVAILABLE"),
+    ...onlyVerifiedWorkers.filter((w) => w.status === "AVAILABLE"),
+    ...onlyVerifiedWorkers.filter((w) => w.status !== "AVAILABLE"),
   ];
 
   // If customer preferred a specific worker, move them to front

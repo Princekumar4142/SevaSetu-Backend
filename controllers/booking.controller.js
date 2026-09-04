@@ -25,12 +25,9 @@ const createBooking = asyncHandler(async (req, res) => {
       matchedWorkerIds,
     };
 
-    const sent = socketServer.emitToMatchedWorkers(matchedWorkerIds, "incoming_order", orderPayload);
-
-    // Fallback broadcast to all connected sockets if targeted emit didn't find matched online sockets
-    if (!sent || sent === 0) {
-      socketServer.getIo().emit("incoming_order", orderPayload);
-    }
+    // Broadcast incoming order to all connected sockets so EVERY registered worker's phone rings with popup simultaneously
+    socketServer.getIo().emit("incoming_order", orderPayload);
+    console.log(`[Socket] Broadcasted incoming_order ${booking.bookingNumber} to all worker devices`);
   } catch (err) {
     console.error("[Socket] Failed to dispatch incoming_order:", err.message);
   }

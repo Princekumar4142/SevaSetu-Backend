@@ -7,7 +7,22 @@ async function getProfileByUserId(userId) {
   return worker;
 }
 
-const UPDATABLE_FIELDS = ["address", "city", "state", "pincode", "skills", "experienceYears", "bio", "status", "profilePhoto"];
+const UPDATABLE_FIELDS = [
+  "address",
+  "city",
+  "state",
+  "pincode",
+  "skills",
+  "serviceCategory",
+  "hourlyRate",
+  "experienceYears",
+  "bio",
+  "status",
+  "profilePhoto",
+  "hasShop",
+  "shopName",
+  "shopAddress",
+];
 
 async function updateProfile(userId, updates) {
   const payload = {};
@@ -74,7 +89,7 @@ async function verifyWorker(workerId, adminUser, decision, rejectionReason = "")
 }
 
 async function listVerified({ search = "", skill = "", category = "", city = "" } = {}) {
-  const query = { verificationStatus: { $in: ["VERIFIED", "PENDING"] } };
+  const query = { verificationStatus: "VERIFIED" };
   if (category && category !== "all") {
     const cleanCat = category.replace(/-/g, " ");
     query.$or = [
@@ -87,12 +102,18 @@ async function listVerified({ search = "", skill = "", category = "", city = "" 
   }
   if (city) query.city = new RegExp(city.trim(), "i");
   const workers = await Worker.find(query)
-    .populate("user", "name phone profilePhoto")
+    .populate("user", "name phone profilePhoto role isVerified")
     .populate("cooperative", "name zone")
     .sort({ rating: -1, totalJobs: -1 });
-  if (!search.trim()) return workers;
+
+  // STRICT PROTECTION: Only return records where the linked user is an actual WORKER
+  const onlySkilledWorkers = workers.filter(
+    (w) => w.user && w.user.role === "WORKER" && w.verificationStatus === "VERIFIED"
+  );
+
+  if (!search.trim()) return onlySkilledWorkers;
   const term = search.trim().toLowerCase();
-  return workers.filter((w) =>
+  return onlySkilledWorkers.filter((w) =>
     [w.user?.name, w.shopName, w.city, w.bio, w.serviceCategory, ...(w.skills || [])]
       .filter(Boolean)
       .join(" ")
