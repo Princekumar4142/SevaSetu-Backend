@@ -17,14 +17,18 @@ const createBooking = asyncHandler(async (req, res) => {
       slot: booking.slot,
       totalAmount: booking.pricing.totalAmount,
       category: req.body.category || booking.items[0]?.meta || "custom-services",
-      matchedWorkerIds, // sent so worker clients know who else was notified (for relay on reject)
+      customer: {
+        name: req.user?.name || "Customer",
+        phone: req.user?.phone || "+91 98000 00000",
+        profilePhoto: req.user?.profilePhoto || "",
+      },
+      matchedWorkerIds,
     };
 
-    // Targeted emit: only matching city+category workers get the notification
     const sent = socketServer.emitToMatchedWorkers(matchedWorkerIds, "incoming_order", orderPayload);
 
-    // Fallback broadcast if no matched workers are online (so at least someone sees it)
-    if (sent === 0 && matchedWorkerIds.length === 0) {
+    // Fallback broadcast to all connected sockets if targeted emit didn't find matched online sockets
+    if (!sent || sent === 0) {
       socketServer.getIo().emit("incoming_order", orderPayload);
     }
   } catch (err) {
