@@ -21,12 +21,18 @@ async function setupAdminAndResetWorkers() {
     let adminUser = await User.findOne({ email: adminEmail });
 
     if (adminUser) {
-      console.log(`User ${adminEmail} found. Updating role to PLATFORM_ADMIN...`);
-      adminUser.role = "PLATFORM_ADMIN";
-      adminUser.passwordHash = passwordHash;
-      adminUser.isVerified = true;
-      adminUser.isActive = true;
-      await adminUser.save();
+      console.log(`User ${adminEmail} found. Direct updating role & single passwordHash...`);
+      await User.updateOne(
+        { _id: adminUser._id },
+        {
+          $set: {
+            role: "PLATFORM_ADMIN",
+            passwordHash: passwordHash,
+            isVerified: true,
+            isActive: true,
+          },
+        }
+      );
       console.log(`Admin account updated successfully! User ID: ${adminUser._id}`);
     } else {
       console.log(`Creating new PLATFORM_ADMIN account for ${adminEmail}...`);
@@ -34,7 +40,7 @@ async function setupAdminAndResetWorkers() {
         name: "Prince Admin",
         email: adminEmail,
         phone: "9876543210",
-        passwordHash: passwordHash,
+        passwordHash: plainPassword, // pre-save hook will hash plainPassword ONCE
         role: "PLATFORM_ADMIN",
         isVerified: true,
         isActive: true,
@@ -42,8 +48,13 @@ async function setupAdminAndResetWorkers() {
       console.log(`Admin account created successfully! User ID: ${adminUser._id}`);
     }
 
-    // Reset any recent worker profiles so the admin can test approval flow
-    console.log("Resetting workers registered without approval to PENDING status...");
+    // Verify bcrypt check locally right now
+    const updatedUser = await User.findOne({ email: adminEmail }).select("+passwordHash");
+    const isMatch = await bcrypt.compare(plainPassword, updatedUser.passwordHash);
+    console.log(`Bcrypt check test for '${adminEmail}' with '${plainPassword}': ${isMatch ? "SUCCESS ✓" : "FAILED ✕"}`);
+
+    // Reset any worker profiles to PENDING status
+    console.log("Resetting workers to PENDING status...");
     const resetResult = await Worker.updateMany(
       {},
       {
@@ -56,7 +67,6 @@ async function setupAdminAndResetWorkers() {
     );
     console.log(`Reset ${resetResult.modifiedCount} workers to PENDING verification status.`);
 
-    // Also update matching user isVerified to false for worker role users
     const workers = await Worker.find().select("user");
     const workerUserIds = workers.map((w) => w.user);
     await User.updateMany(
