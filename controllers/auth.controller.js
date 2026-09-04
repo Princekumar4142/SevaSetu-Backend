@@ -3,8 +3,8 @@ const ApiResponse = require("../utils/apiResponse");
 const authService = require("../services/auth.service");
 
 const registerCustomer = asyncHandler(async (req, res) => {
-  const { name, phone, email, password } = req.body;
-  const result = await authService.registerCustomer({ name, phone, email, password });
+  const { name, phone, email, password, address, city, state, pincode } = req.body;
+  const result = await authService.registerCustomer({ name, phone, email, password, address, city, state, pincode });
   return ApiResponse.success(res, { message: "Customer registered successfully", data: result, statusCode: 201 });
 });
 

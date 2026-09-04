@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     language: { type: String, enum: ["EN", "HI"], default: "HI" },
 
+    // Customer / User primary address details
+    address: { type: String, trim: true, default: "" },
+    city: { type: String, trim: true, default: "" },
+    state: { type: String, trim: true, default: "" },
+    pincode: { type: String, trim: true, default: "" },
+
     // Present only for role === COOPERATIVE_ADMIN / FEDERATION_ADMIN, kept here to avoid
     // an extra join for the common "which org does this admin belong to" check.
     cooperative: { type: mongoose.Schema.Types.ObjectId, ref: "Cooperative", default: null },

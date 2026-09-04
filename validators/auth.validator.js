@@ -31,6 +31,10 @@ const registerCustomerValidator = [
     if (value !== req.body.password) throw new Error("Passwords do not match");
     return true;
   }),
+  body("address").trim().notEmpty().withMessage("Address / Area is required"),
+  body("city").trim().notEmpty().withMessage("City is required"),
+  body("state").optional().trim(),
+  body("pincode").trim().matches(/^\d{6}$/).withMessage("Enter a valid 6-digit pincode"),
   handleValidation,
 ];
 

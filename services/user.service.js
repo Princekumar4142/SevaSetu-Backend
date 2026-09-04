@@ -7,7 +7,7 @@ async function getProfile(userId) {
   return user.toSafeObject();
 }
 
-const UPDATABLE_FIELDS = ["name", "email", "profilePhoto", "language"];
+const UPDATABLE_FIELDS = ["name", "email", "profilePhoto", "language", "address", "city", "state", "pincode"];
 
 async function updateProfile(userId, updates) {
   const payload = {};

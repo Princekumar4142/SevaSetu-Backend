@@ -19,13 +19,22 @@ function issueSession(user) {
   return { token, user: user.toSafeObject() };
 }
 
-async function registerCustomer({ name, phone, email, password }) {
+async function registerCustomer({ name, phone, email, password, address, city, state, pincode }) {
   await assertNoDuplicate({ phone, email });
   // Requires a prior successful POST /auth/verify-otp for this email —
   // throws if there's no verified, unconsumed OTP record.
   await otpService.consumeVerifiedOtp({ email, purpose: "REGISTER" });
   const user = await User.create({
-    name, phone, email, passwordHash: password, role: ROLES.CUSTOMER, isVerified: true,
+    name,
+    phone,
+    email,
+    passwordHash: password,
+    role: ROLES.CUSTOMER,
+    isVerified: true,
+    address: address || "",
+    city: city || "",
+    state: state || "",
+    pincode: pincode || "",
   });
 
   if (email) {
