@@ -10,6 +10,9 @@ const ApiError = require("./utils/apiError");
 
 const app = express();
 
+// Trust Railway/Vercel reverse proxy — required for rate-limit & IP detection
+app.set("trust proxy", 1);
+
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
 const corsOptions = {
