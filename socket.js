@@ -84,6 +84,24 @@ module.exports = {
             if (workerObj) {
               existing.worker = workerObj._id;
               if (workerObj.cooperative) existing.cooperative = workerObj.cooperative;
+              if (typeof data.lat === "number" && typeof data.lng === "number") {
+                workerObj.location = {
+                  lat: data.lat,
+                  lng: data.lng,
+                  address: workerObj.address || "",
+                };
+                await workerObj.save();
+              }
+            }
+
+            if (typeof data.lat === "number" && typeof data.lng === "number") {
+              existing.workerLiveLocation = {
+                lat: data.lat,
+                lng: data.lng,
+                heading: data.heading || 0,
+                speed: data.speed || 0,
+                updatedAt: new Date(),
+              };
             }
 
             existing.status = "ASSIGNED";
@@ -114,8 +132,21 @@ module.exports = {
           bookingNumber: bookingData?.bookingNumber || data.orderId,
           workerId: bookingData?.worker?._id || data.workerId,
           worker: bookingData?.worker || null,
+          workerLiveLocation: bookingData?.workerLiveLocation || (typeof data.lat === "number" ? { lat: data.lat, lng: data.lng } : null),
           status: "ASSIGNED",
         });
+
+        if (typeof data.lat === "number" && typeof data.lng === "number") {
+          io.emit("worker_location_broadcast", {
+            bookingId: data.orderId,
+            workerId: data.workerId,
+            lat: data.lat,
+            lng: data.lng,
+            heading: 0,
+            speed: 0,
+            timestamp: new Date().toISOString(),
+          });
+        }
 
         console.log(`[Socket] Order ${data.orderId} assigned to worker ${bookingData?.worker?.user?.name || data.workerId}`);
       });

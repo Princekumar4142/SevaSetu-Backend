@@ -38,8 +38,8 @@ const workerSchema = new mongoose.Schema(
     jobsThisWeek: { type: Number, default: 3 },
 
     location: {
-      lat: { type: Number, default: 18.5793 },
-      lng: { type: Number, default: 73.9787 },
+      lat: { type: Number, default: 26.8023 },
+      lng: { type: Number, default: 84.5074 },
       address: { type: String, default: "" },
     },
 
