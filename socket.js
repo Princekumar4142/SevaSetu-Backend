@@ -144,6 +144,51 @@ module.exports = {
         }
       });
 
+      // ── Live Worker Location Update (Real GPS) ────────────────────────
+      socket.on("worker_location_update", async (data) => {
+        // data: { bookingId, workerId, lat, lng, heading, speed }
+        if (!data || typeof data.lat !== "number" || typeof data.lng !== "number") return;
+
+        const payload = {
+          bookingId: data.bookingId,
+          workerId: data.workerId,
+          lat: Number(data.lat),
+          lng: Number(data.lng),
+          heading: data.heading || 0,
+          speed: data.speed || 0,
+          timestamp: new Date().toISOString(),
+        };
+
+        // Broadcast real-time GPS coordinates to all listeners (customer live tracking map)
+        io.emit("worker_location_broadcast", payload);
+
+        // Asynchronously persist coordinates on active booking and worker profile
+        try {
+          const mongoose = require("mongoose");
+          const Booking = require("./models/Booking.js");
+          const Worker = require("./models/Worker.js");
+
+          if (data.bookingId && mongoose.Types.ObjectId.isValid(data.bookingId)) {
+            await Booking.findByIdAndUpdate(data.bookingId, {
+              "workerLiveLocation.lat": payload.lat,
+              "workerLiveLocation.lng": payload.lng,
+              "workerLiveLocation.heading": payload.heading,
+              "workerLiveLocation.speed": payload.speed,
+              "workerLiveLocation.updatedAt": new Date(),
+            });
+          }
+
+          if (data.workerId && mongoose.Types.ObjectId.isValid(data.workerId)) {
+            await Worker.findOneAndUpdate(
+              { $or: [{ _id: data.workerId }, { user: data.workerId }] },
+              { "location.lat": payload.lat, "location.lng": payload.lng }
+            );
+          }
+        } catch (err) {
+          console.warn("[Socket] Failed saving live GPS to DB:", err.message);
+        }
+      });
+
       // ── Disconnect ───────────────────────────────────────────────────
       socket.on("disconnect", () => {
         console.log(`[Socket] Client disconnected: ${socket.id}`);

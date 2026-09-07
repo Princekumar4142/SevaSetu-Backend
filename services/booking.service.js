@@ -66,6 +66,21 @@ async function createBooking(customerId, bookingData) {
     throw ApiError.badRequest("Valid booking slot date and time are required");
   }
 
+  // Prevent booking expired time slots for today
+  const today = new Date();
+  const todayFormatted = today.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+  if (slot.date.trim().toLowerCase() === todayFormatted.trim().toLowerCase() || slot.date.toLowerCase().includes("today")) {
+    const [time, modifier] = slot.time.trim().split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+    const slotMinutes = hours * 60 + minutes;
+    const currentMinutes = today.getHours() * 60 + today.getMinutes();
+    if (slotMinutes <= currentMinutes) {
+      throw ApiError.badRequest("This time slot has already passed. Please choose an upcoming slot.");
+    }
+  }
+
   // Derive category from items if not explicitly passed
   const serviceCategory = category || items[0]?.meta || "custom-services";
   const city = address?.city || "";
@@ -159,7 +174,7 @@ async function updateBookingStatus(bookingId, status, user) {
     const worker = await Worker.findOne({ user: user._id });
     if (!worker) throw ApiError.forbidden("Worker profile required");
     
-    if (booking.status === "PENDING" && status === "ASSIGNED") {
+    if (booking.status === "PENDING" && (status === "ASSIGNED" || status === "ACCEPTED")) {
       booking.worker = worker._id;
       booking.cooperative = worker.cooperative;
     } else if (booking.worker && booking.worker.toString() !== worker._id.toString()) {
@@ -167,10 +182,17 @@ async function updateBookingStatus(bookingId, status, user) {
     }
   }
 
+  let note = `Status updated to ${status} by ${user.name || user.role}`;
+  if (status === "ASSIGNED" || status === "ACCEPTED") note = `Job accepted by ${user.name || "Worker Partner"}`;
+  else if (status === "ON_THE_WAY") note = `${user.name || "Worker Partner"} is traveling to service destination`;
+  else if (status === "ARRIVED") note = `${user.name || "Worker Partner"} has arrived at the customer doorstep`;
+  else if (status === "IN_PROGRESS") note = `Service work started by ${user.name || "Worker Partner"}`;
+  else if (status === "COMPLETED") note = `Service successfully completed by ${user.name || "Worker Partner"}`;
+
   booking.status = status;
   booking.statusHistory.push({
     status,
-    note: `Status updated to ${status} by ${user.name || user.role}`,
+    note,
     timestamp: new Date(),
   });
 

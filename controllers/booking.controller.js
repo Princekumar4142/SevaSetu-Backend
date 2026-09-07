@@ -55,10 +55,15 @@ const updateStatus = asyncHandler(async (req, res) => {
       orderId: booking._id,
       bookingNumber: booking.bookingNumber,
       status: booking.status,
+      worker: booking.worker,
+      workerId: booking.worker?._id,
       booking,
     };
     io.emit("booking_updated", payload);
     io.emit("status_updated", payload);
+    if (booking.status === "ASSIGNED" || booking.status === "ACCEPTED") {
+      io.emit("worker_assigned", payload);
+    }
   } catch (err) {
     console.error("[Socket] Status update broadcast failed:", err.message);
   }

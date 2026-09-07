@@ -58,8 +58,15 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "ACCEPTED", "ASSIGNED", "ON_THE_WAY", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
+      enum: ["PENDING", "ACCEPTED", "ASSIGNED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
       default: "PENDING",
+    },
+    workerLiveLocation: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      heading: { type: Number, default: null },
+      speed: { type: Number, default: null },
+      updatedAt: { type: Date, default: null },
     },
     statusHistory: [
       {
