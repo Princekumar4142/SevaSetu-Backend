@@ -49,4 +49,20 @@ const getVerifiedWorkerById = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, { message: "Worker fetched", data: { worker } });
 });
 
-module.exports = { getProfile, updateProfile, listVerificationQueue, getVerificationWorker, verifyWorker, rejectWorker, listVerifiedWorkers, getVerifiedWorkerById };
+const deleteWorker = asyncHandler(async (req, res) => {
+  const result = await workerService.deleteWorker(req.params.workerId, req.user);
+  return ApiResponse.success(res, { message: result.message, data: result });
+});
+
+module.exports = {
+  getProfile,
+  updateProfile,
+  listVerificationQueue,
+  getVerificationWorker,
+  verifyWorker,
+  rejectWorker,
+  listVerifiedWorkers,
+  getVerifiedWorkerById,
+  deleteWorker,
+};
+

@@ -20,4 +20,8 @@ router.patch("/verification/:workerId/reject", protect, authorize(ROLES.COOPERAT
 router.get("/verified", workerController.listVerifiedWorkers);
 router.get("/verified/:workerId", workerController.getVerifiedWorkerById);
 
+// Admin deletion of worker profile (Cooperative admin or Platform admin)
+router.delete("/:workerId", protect, authorize(ROLES.COOPERATIVE_ADMIN, ROLES.PLATFORM_ADMIN), workerController.deleteWorker);
+
 module.exports = router;
+

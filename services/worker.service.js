@@ -130,4 +130,50 @@ async function getVerifiedById(workerId) {
   return worker;
 }
 
-module.exports = { getProfileByUserId, updateProfile, listForAdmin, getForAdmin, verifyWorker, listVerified, getVerifiedById };
+async function deleteWorker(workerId, adminUser) {
+  const query = { _id: workerId };
+  if (adminUser.role === "COOPERATIVE_ADMIN") {
+    if (!adminUser.cooperative) throw ApiError.forbidden("Your admin account is not linked to a cooperative");
+    query.cooperative = adminUser.cooperative;
+  }
+
+  const worker = await Worker.findOne(query);
+  if (!worker) throw ApiError.notFound("Worker not found or outside your cooperative");
+
+  const userId = worker.user;
+  const User = require("../models/User");
+  const Booking = require("../models/Booking");
+
+  // Delete worker profile
+  await Worker.findByIdAndDelete(workerId);
+
+  // If there is an associated User account, delete it as well so their login is removed
+  let userName = "Worker";
+  if (userId) {
+    const userDoc = await User.findById(userId);
+    if (userDoc) {
+      userName = userDoc.name;
+      await User.findByIdAndDelete(userId);
+    }
+  }
+
+  // Cancel any active bookings assigned to this worker
+  await Booking.updateMany(
+    { worker: workerId, status: { $in: ["PENDING", "ACCEPTED", "ASSIGNED"] } },
+    { $set: { status: "CANCELLED", cancellationReason: "Worker profile removed by administrator" } }
+  );
+
+  return { message: `Worker profile for ${userName} and associated account have been permanently deleted` };
+}
+
+module.exports = {
+  getProfileByUserId,
+  updateProfile,
+  listForAdmin,
+  getForAdmin,
+  verifyWorker,
+  listVerified,
+  getVerifiedById,
+  deleteWorker,
+};
+
