@@ -83,11 +83,20 @@ const verifyOtpValidator = [
   handleValidation,
 ];
 
+const resetPasswordValidator = [
+  body("email").trim().isEmail().withMessage("Enter a valid email address"),
+  body("otp").trim().matches(/^\d{6}$/).withMessage("Enter the 6-digit verification code"),
+  body("newPassword").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  handleValidation,
+];
+
 module.exports = {
   registerCustomerValidator,
   registerWorkerValidator,
   loginValidator,
   sendOtpValidator,
   verifyOtpValidator,
+  resetPasswordValidator,
   handleValidation,
 };
+

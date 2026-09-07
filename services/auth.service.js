@@ -126,4 +126,35 @@ async function login({ identifier, password }) {
   return issueSession(user);
 }
 
-module.exports = { registerCustomer, registerWorker, login };
+async function requestPasswordResetOtp({ email }) {
+  return otpService.requestOtp({ email, purpose: "RESET_PASSWORD" });
+}
+
+async function verifyPasswordResetOtp({ email, otp }) {
+  return otpService.verifyOtp({ email, otp, purpose: "RESET_PASSWORD" });
+}
+
+async function resetPassword({ email, otp, newPassword }) {
+  const cleanEmail = email.toLowerCase().trim();
+  const user = await User.findOne({ email: cleanEmail });
+  if (!user) throw ApiError.notFound("No account found registered with this email address");
+
+  // Verify and consume OTP for RESET_PASSWORD
+  await otpService.verifyOtp({ email: cleanEmail, otp, purpose: "RESET_PASSWORD" });
+  await otpService.consumeVerifiedOtp({ email: cleanEmail, purpose: "RESET_PASSWORD" });
+
+  user.passwordHash = newPassword;
+  await user.save();
+
+  return { message: "Password updated successfully! You can now log in with your new password." };
+}
+
+module.exports = {
+  registerCustomer,
+  registerWorker,
+  login,
+  requestPasswordResetOtp,
+  verifyPasswordResetOtp,
+  resetPassword,
+};
+

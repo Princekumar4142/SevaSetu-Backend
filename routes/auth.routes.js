@@ -9,6 +9,7 @@ const {
   loginValidator,
   sendOtpValidator,
   verifyOtpValidator,
+  resetPasswordValidator,
 } = require("../validators/auth.validator");
 
 const router = express.Router();
@@ -21,4 +22,10 @@ router.post("/login", authLimiter, loginValidator, authController.login);
 router.post("/logout", protect, authController.logout);
 router.get("/me", protect, authController.getMe);
 
+// Forgot Password Flow
+router.post("/forgot-password/send-otp", authLimiter, sendOtpValidator, authController.forgotPasswordSendOtp);
+router.post("/forgot-password/verify-otp", authLimiter, verifyOtpValidator, authController.forgotPasswordVerifyOtp);
+router.post("/reset-password", authLimiter, resetPasswordValidator, authController.resetPassword);
+
 module.exports = router;
+

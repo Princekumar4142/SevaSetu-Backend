@@ -33,4 +33,35 @@ const getMe = asyncHandler(async (req, res) => {
   return ApiResponse.success(res, { message: "Current user fetched", data: { user: req.user.toSafeObject() } });
 });
 
-module.exports = { registerCustomer, registerWorker, login, logout, getMe };
+const forgotPasswordSendOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const result = await authService.requestPasswordResetOtp({ email });
+  return ApiResponse.success(res, {
+    message: `Password reset verification code sent to ${email}`,
+    data: result,
+  });
+});
+
+const forgotPasswordVerifyOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  await authService.verifyPasswordResetOtp({ email, otp });
+  return ApiResponse.success(res, { message: "Verification code verified successfully" });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  const result = await authService.resetPassword({ email, otp, newPassword });
+  return ApiResponse.success(res, { message: result.message, data: result });
+});
+
+module.exports = {
+  registerCustomer,
+  registerWorker,
+  login,
+  logout,
+  getMe,
+  forgotPasswordSendOtp,
+  forgotPasswordVerifyOtp,
+  resetPassword,
+};
+

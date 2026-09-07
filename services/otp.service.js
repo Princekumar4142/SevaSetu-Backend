@@ -24,7 +24,11 @@ async function requestOtp({ email, purpose = "REGISTER" }) {
   if (purpose === "REGISTER") {
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) throw ApiError.conflict("An account with this email already exists");
+  } else if (purpose === "RESET_PASSWORD") {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (!existingUser) throw ApiError.notFound("No account found registered with this email address");
   }
+
 
   // Rate-limit resends per email so a user can't spam themselves/the mail server.
   const recent = await Otp.findOne({ email: email.toLowerCase(), purpose }).sort({ createdAt: -1 });
