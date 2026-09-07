@@ -1,10 +1,12 @@
 const User = require("../models/User");
 const Worker = require("../models/Worker");
+const Otp = require("../models/Otp");
 const ApiError = require("../utils/apiError");
 const { generateToken } = require("../utils/token");
 const { ROLES } = require("../utils/roles");
 const otpService = require("./otp.service");
 const { sendWelcomeEmail } = require("./email.service");
+
 
 async function assertNoDuplicate({ phone, email }) {
   const existing = await User.findOne({ $or: [{ phone }, ...(email ? [{ email }] : [])] });
@@ -139,8 +141,14 @@ async function resetPassword({ email, otp, newPassword }) {
   const user = await User.findOne({ email: cleanEmail });
   if (!user) throw ApiError.notFound("No account found registered with this email address");
 
-  // Verify and consume OTP for RESET_PASSWORD
-  await otpService.verifyOtp({ email: cleanEmail, otp, purpose: "RESET_PASSWORD" });
+  // Check if an unverified OTP record exists (if user skipped step 2 or verifies inline)
+  const unverified = await Otp.findOne({ email: cleanEmail, purpose: "RESET_PASSWORD", verified: false }).sort({ createdAt: -1 });
+  if (unverified) {
+    if (!otp) throw ApiError.badRequest("Verification code is required");
+    await otpService.verifyOtp({ email: cleanEmail, otp, purpose: "RESET_PASSWORD" });
+  }
+
+  // Consume the verified OTP record
   await otpService.consumeVerifiedOtp({ email: cleanEmail, purpose: "RESET_PASSWORD" });
 
   user.passwordHash = newPassword;
@@ -148,6 +156,7 @@ async function resetPassword({ email, otp, newPassword }) {
 
   return { message: "Password updated successfully! You can now log in with your new password." };
 }
+
 
 module.exports = {
   registerCustomer,
