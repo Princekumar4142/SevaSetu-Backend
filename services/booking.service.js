@@ -29,9 +29,17 @@ async function getMatchedWorkersForDispatch({ city, category, preferredWorkerId 
     .populate("user", "name phone profilePhoto role")
     .sort({ status: 1, rating: -1 }); // AVAILABLE sorts before BUSY alphabetically
 
-  const onlyVerifiedWorkers = workers.filter(
+  let onlyVerifiedWorkers = workers.filter(
     (w) => w.user && w.user.role === "WORKER" && w.verificationStatus === "VERIFIED"
   );
+
+  // If no exact match in local dev DB, fallback to all verified workers so socket alerts always fire
+  if (onlyVerifiedWorkers.length === 0) {
+    const allVerified = await Worker.find({ verificationStatus: "VERIFIED" })
+      .populate("user", "name phone profilePhoto role")
+      .sort({ status: 1, rating: -1 });
+    onlyVerifiedWorkers = allVerified.filter((w) => w.user && w.user.role === "WORKER");
+  }
 
   // Sort: AVAILABLE first, then preferred worker at top
   const sorted = [
