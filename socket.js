@@ -14,11 +14,13 @@ module.exports = {
           if (
             allowedOrigins.includes(normalized) ||
             allowedOrigins.includes(origin) ||
-            normalized.endsWith(".vercel.app")
+            normalized.endsWith(".vercel.app") ||
+            normalized.includes("localhost") ||
+            normalized.includes("127.0.0.1")
           ) {
             return callback(null, true);
           }
-          return callback(new Error("Origin not allowed by CORS"));
+          return callback(null, false);
         },
         methods: ["GET", "POST"],
         credentials: true,

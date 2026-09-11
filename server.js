@@ -23,20 +23,24 @@ const corsOptions = {
     const isAllowed =
       allowedOrigins.includes(normalizedOrigin) ||
       allowedOrigins.includes(origin) ||
-      normalizedOrigin.endsWith(".vercel.app");
+      normalizedOrigin.endsWith(".vercel.app") ||
+      normalizedOrigin.includes("localhost") ||
+      normalizedOrigin.includes("127.0.0.1");
 
     if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+      callback(null, false);
     }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
