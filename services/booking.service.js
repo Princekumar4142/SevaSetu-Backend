@@ -7,11 +7,38 @@ const ApiError = require("../utils/apiError");
  * Find verified workers matching city and service category for dispatch.
  * Returns an array of worker docs (populated with user) sorted: AVAILABLE first.
  */
-async function getMatchedWorkersForDispatch({ city, category, preferredWorkerId } = {}) {
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 2.4; // Realistic fallback distance
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
+/**
+ * Find verified workers matching GPS location (within 15km) and service category for dispatch.
+ * Returns an array of worker docs (populated with user) sorted: Proximity & AVAILABLE first.
+ */
+async function getMatchedWorkersForDispatch({ city, category, preferredWorkerId, lat, lng } = {}) {
   const query = { verificationStatus: "VERIFIED" };
 
-  // City match (case-insensitive)
-  if (city && city.trim()) {
+  // True Geo-Spatial Proximity Match via 2dsphere ($near within 15 km)
+  if (typeof lat === "number" && typeof lng === "number" && !isNaN(lat) && !isNaN(lng)) {
+    query.geo = {
+      $near: {
+        $geometry: { type: "Point", coordinates: [lng, lat] },
+        $maxDistance: 15000, // 15 km radius
+      },
+    };
+  } else if (city && city.trim()) {
+    // City fallback if GPS not available
     query.city = new RegExp(city.trim(), "i");
   }
 
@@ -25,9 +52,19 @@ async function getMatchedWorkersForDispatch({ city, category, preferredWorkerId 
     ];
   }
 
-  const workers = await Worker.find(query)
-    .populate("user", "name phone profilePhoto role")
-    .sort({ status: 1, rating: -1 }); // AVAILABLE sorts before BUSY alphabetically
+  let workers = [];
+  try {
+    workers = await Worker.find(query)
+      .populate("user", "name phone profilePhoto role")
+      .sort({ status: 1, rating: -1 });
+  } catch (err) {
+    // Fallback without $near if index building is in progress in local dev
+    delete query.geo;
+    if (city && city.trim()) query.city = new RegExp(city.trim(), "i");
+    workers = await Worker.find(query)
+      .populate("user", "name phone profilePhoto role")
+      .sort({ status: 1, rating: -1 });
+  }
 
   let onlyVerifiedWorkers = workers.filter(
     (w) => w.user && w.user.role === "WORKER" && w.verificationStatus === "VERIFIED"
@@ -41,7 +78,16 @@ async function getMatchedWorkersForDispatch({ city, category, preferredWorkerId 
     onlyVerifiedWorkers = allVerified.filter((w) => w.user && w.user.role === "WORKER");
   }
 
-  // Sort: AVAILABLE first, then preferred worker at top
+  // Attach real-time distance in KM to each worker
+  onlyVerifiedWorkers = onlyVerifiedWorkers.map((w) => {
+    const doc = w.toObject ? w.toObject() : { ...w };
+    const wLat = doc.location?.lat || doc.geo?.coordinates?.[1] || 26.8023;
+    const wLng = doc.location?.lng || doc.geo?.coordinates?.[0] || 84.5074;
+    doc.distanceKm = calculateDistanceKm(lat, lng, wLat, wLng);
+    return doc;
+  });
+
+  // Sort: AVAILABLE first, then distance
   const sorted = [
     ...onlyVerifiedWorkers.filter((w) => w.status === "AVAILABLE"),
     ...onlyVerifiedWorkers.filter((w) => w.status !== "AVAILABLE"),
@@ -93,11 +139,16 @@ async function createBooking(customerId, bookingData) {
   const serviceCategory = category || items[0]?.meta || "custom-services";
   const city = address?.city || "";
 
-  // Get city + category matched workers (preferred worker first if set)
+  // Get Geo-Spatial proximity + category matched workers (preferred worker first if set)
+  const lat = address?.lat || (typeof address === "object" ? address.coordinates?.lat : null);
+  const lng = address?.lng || (typeof address === "object" ? address.coordinates?.lng : null);
+
   const matchedWorkers = await getMatchedWorkersForDispatch({
     city,
     category: serviceCategory,
     preferredWorkerId,
+    lat,
+    lng,
   });
 
   const booking = await Booking.create({

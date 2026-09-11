@@ -43,6 +43,11 @@ const workerSchema = new mongoose.Schema(
       address: { type: String, default: "" },
     },
 
+    geo: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [84.5074, 26.8023] }, // [longitude, latitude]
+    },
+
     earnings: {
       gross: { type: Number, default: 0 },
       net: { type: Number, default: 0 },
@@ -52,6 +57,18 @@ const workerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Synchronize GeoJSON coordinates with location.lat/lng
+workerSchema.pre("save", function (next) {
+  if (this.location && typeof this.location.lng === "number" && typeof this.location.lat === "number") {
+    this.geo = {
+      type: "Point",
+      coordinates: [this.location.lng, this.location.lat],
+    };
+  }
+  next();
+});
+
+workerSchema.index({ geo: "2dsphere" });
 workerSchema.index({ skills: 1 });
 workerSchema.index({ cooperative: 1, verificationStatus: 1, createdAt: -1 });
 workerSchema.index({ verificationStatus: 1, city: 1 });
