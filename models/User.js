@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false }, // used for worker verification-by-cooperative flow
     isActive: { type: Boolean, default: true },
     language: { type: String, enum: ["EN", "HI"], default: "HI" },
+    theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
 
     // Customer / User primary address details
     address: { type: String, trim: true, default: "" },

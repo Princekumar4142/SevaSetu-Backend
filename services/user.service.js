@@ -13,6 +13,7 @@ const UPDATABLE_FIELDS = [
   "phone",
   "profilePhoto",
   "language",
+  "theme",
   "address",
   "city",
   "state",
