@@ -12,7 +12,7 @@ async function createFederationAdmin() {
     await mongoose.connect(mongoUri);
     console.log("Connected successfully!");
 
-    const email = "lprincekkc4142@gmail.com".toLowerCase().trim();
+    const email = "princekkc4142@gmail.com".toLowerCase().trim();
     const plainPassword = "Pk4142@@";
 
     // 1. Ensure a Federation exists
