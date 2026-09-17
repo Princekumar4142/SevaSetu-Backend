@@ -83,27 +83,33 @@ async function registerWorker({
     profilePhoto: profilePhoto || null,
   });
 
-  const worker = await Worker.create({
-    user: user._id,
-    address,
-    city: city || "Pune",
-    state: state || "Maharashtra",
-    pincode: pincode || "411014",
-    skills: skills && skills.length > 0 ? skills : ["General Professional Service"],
-    serviceCategory: serviceCategory || "custom-services",
-    experienceYears: Number(experienceYears) || 0,
-    hourlyRate: Number(hourlyRate) || 299,
-    aadharNumber: aadharNumber || "",
-    aadharImage: aadharImage || "",
-    hasShop: Boolean(hasShop),
-    shopName: shopName || "",
-    shopImage: shopImage || "",
-    shopAddress: shopAddress || address || "",
-    location: location || { lat: 18.5793, lng: 73.9787, address: address || "" },
-    verificationStatus: "PENDING",
-    verifiedAt: null,
-    status: "OFFLINE",
-  });
+  let worker;
+  try {
+    worker = await Worker.create({
+      user: user._id,
+      address,
+      city: city || "Pune",
+      state: state || "Maharashtra",
+      pincode: pincode || "411014",
+      skills: skills && skills.length > 0 ? skills : ["General Professional Service"],
+      serviceCategory: serviceCategory || "custom-services",
+      experienceYears: Number(experienceYears) || 0,
+      hourlyRate: Number(hourlyRate) || 299,
+      aadharNumber: aadharNumber || "",
+      aadharImage: aadharImage || "",
+      hasShop: Boolean(hasShop),
+      shopName: shopName || "",
+      shopImage: shopImage || "",
+      shopAddress: shopAddress || address || "",
+      location: location || { lat: 18.5793, lng: 73.9787, address: address || "" },
+      verificationStatus: "PENDING",
+      verifiedAt: null,
+      status: "OFFLINE",
+    });
+  } catch (err) {
+    await User.findByIdAndDelete(user._id).catch(() => {});
+    throw err;
+  }
 
   if (email) {
     sendWelcomeEmail(email, name).catch((err) => {
