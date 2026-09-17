@@ -58,14 +58,15 @@ const workerSchema = new mongoose.Schema(
 );
 
 // Synchronize GeoJSON coordinates with location.lat/lng
-workerSchema.pre("save", function (next) {
+// In modern Mongoose (v8+), synchronous middleware does not take a `next` callback.
+// Calling `next()` causes "TypeError: next is not a function".
+workerSchema.pre("save", function () {
   if (this.location && typeof this.location.lng === "number" && typeof this.location.lat === "number") {
     this.geo = {
       type: "Point",
       coordinates: [this.location.lng, this.location.lat],
     };
   }
-  next();
 });
 
 workerSchema.index({ geo: "2dsphere" });
