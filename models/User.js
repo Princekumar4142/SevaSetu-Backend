@@ -22,7 +22,18 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: { type: String, required: true, select: false },
     profilePhoto: { type: String, default: null },
-    role: { type: String, enum: ALL_ROLES, required: true, default: ROLES.CUSTOMER },
+    role: {
+      type: String,
+      enum: ALL_ROLES,
+      required: true,
+      default: ROLES.CUSTOMER,
+      set: (val) => {
+        if (!val) return val;
+        const normalized = String(val).toUpperCase();
+        if (normalized === "ADMIN") return ROLES.PLATFORM_ADMIN;
+        return val;
+      },
+    },
     isVerified: { type: Boolean, default: false }, // used for worker verification-by-cooperative flow
     isActive: { type: Boolean, default: true },
     language: { type: String, enum: ["EN", "HI"], default: "HI" },
